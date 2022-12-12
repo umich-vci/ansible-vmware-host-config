@@ -1,0 +1,9 @@
+---
+# defaults file for cis_level1_host_benchmark
+vmware_host: "{{ lookup('env','VMWARE_HOST') }}"
+vmware_user: "{{ lookup('env','VMWARE_USER') }}"
+vmware_password: "{{ lookup('env','VMWARE_PASSWORD') }}"
+acceptance_level: vmware_accepted
+snmp_required: false
+dvfilter_required: false
+dcui_access_list: 'root'
