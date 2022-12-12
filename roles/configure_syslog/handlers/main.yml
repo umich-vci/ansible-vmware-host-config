@@ -1,0 +1,4 @@
+---
+# handlers file for configure_syslog
+- name: Reload syslog
+  ansible.builtin.shell: esxcli system syslog reload

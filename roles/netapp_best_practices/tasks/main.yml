@@ -1,0 +1,35 @@
+---
+# tasks file for netapp_vmware_best_practices
+- name: Set ESXi 5.5 NetApp Best Practices
+  vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Net.TcpipHeapSize': 32
+        'Net.TcpipHeapMax': 512
+        'NFS.MaxVolumes': 256
+        'NFS.MaxQueueDepth': 64
+        'NFS.HeartbeatMaxFailures': 10
+        'NFS.HeartbeatFrequency': 12
+        'NFS.HeartbeatTimeout': 5
+  delegate_to: localhost
+  when: ansible_distribution_version == "5.5.0"
+- name: Set ESXi 6.x NetApp Best Practices
+  vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Net.TcpipHeapSize': 32
+        'Net.TcpipHeapMax': 1536
+        'NFS.MaxVolumes': 256
+        'NFS41.MaxVolumes': 256
+        'NFS.MaxQueueDepth': 64
+        'NFS.HeartbeatMaxFailures': 10
+        'NFS.HeartbeatFrequency': 12
+        'NFS.HeartbeatTimeout': 5
+  delegate_to: localhost
+  when: ansible_distribution_version == "6.5.0" or ansible_distribution_version == "6.0.0"

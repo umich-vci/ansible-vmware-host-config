@@ -1,0 +1,29 @@
+---
+# tasks file for configure_snmp
+- name: Configure SNMP
+  community.vmware.vmware_host_snmp:
+    # hostname: '{{ vmware_host }}'
+    # esxi_hostname: '{{ inventory_hostname }}'
+    # Presently, only direct connection to ESXi is supported
+    hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    state: enabled
+    log_level: warning
+    community: '{{ snmp_community }}'
+    #temporary until we get vCenter working
+    validate_certs: false
+  delegate_to: localhost
+
+- name: Allow SNMP through the firewall
+  community.vmware.vmware_host_firewall_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    rules:
+      - name: snmp
+        enabled: True
+        allowed_hosts:
+          all_ip: True
+  delegate_to: localhost

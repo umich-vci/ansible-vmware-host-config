@@ -1,0 +1,26 @@
+---
+# tasks file for configure_hpe_isut
+- name: Configure iSUT on HPE Gen10 Hardware
+  block:
+    - name: Assert valid isut_mode configured
+      ansible.builtin.assert:
+        that: isut_mode in isut_modes
+        fail_msg: "`isut_mode` must be set to AutoDeploy, AutoDeployReboot, AutoStage, or OnDemand"
+
+    - name: Start Temporary SSH
+      ansible.builtin.import_role:
+        name: umich_vci.vmware_host_config.start_temporary_ssh
+
+    - name: Get current iSUT mode
+      ansible.builtin.shell: sut -status | grep 'Mode of Operation' | cut -d' ' -f4
+      register: iSUTStatusCMD
+      changed_when: False
+
+    - name: Set isut_needs_configured fact
+      ansible.builtin.set_fact:
+        isut_needs_configured: '{{ false if iSUTStatusCMD.stdout == isut_mode else true }}'
+
+    - name: Configure iSUT
+      ansible.builtin.shell: sut -set mode={{ isut_mode }}
+      when: isut_needs_configured
+  when: ansible_facts.system_vendor == 'HPE' and 'Gen10' in ansible_facts.product_name

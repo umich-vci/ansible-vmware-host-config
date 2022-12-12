@@ -1,0 +1,26 @@
+---
+# tasks file for VMSA_2019_0011_workaround
+- name: Apply or remove workaround for VMSA-2019-0011
+  block:
+    - name: Start Temporary SSH
+      ansible.builtin.import_role:
+        name: umich_vci.vmware_host_config.start_temporary_ssh
+
+    - name: Add ioTrackers to /etc/vmware/hostd/config.xml
+      xml:
+        backup: yes
+        path: /etc/vmware/hostd/config.xml
+        xpath: /config/ioTrackers
+        value: ' false '
+      when: (ansible_distribution_version == "6.7.0" and ansible_distribution_build|int < 14320388) or (ansible_distribution_version == "6.5.0" and ansible_distribution_build|int < 13932383)
+      notify: Restart hostd
+
+    - name: Remove ioTrackers from /etc/vmware/hostd/config.xml
+      xml:
+        backup: yes
+        path: /etc/vmware/hostd/config.xml
+        xpath: /config/ioTrackers
+        state: absent
+      when: (ansible_distribution_version == "6.7.0" and ansible_distribution_build|int >= 14320388) or (ansible_distribution_version == "6.5.0" and ansible_distribution_build|int >= 13932383)
+      notify: Restart hostd
+  when: (ansible_distribution_version == "6.7.0" or ansible_distribution_version == "6.5.0") and not host_service_facts['host_service_facts'][inventory_hostname] | selectattr('key', 'equalto', 'TSM-SSH') | map(attribute='running') | list | first | bool

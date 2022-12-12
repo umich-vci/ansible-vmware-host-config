@@ -1,0 +1,61 @@
+---
+# tasks file for kb83593_workaround
+- name: Get the current state of all services
+  community.vmware.vmware_host_service_info:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+  delegate_to: localhost
+  register: host_service_info
+
+- name: Start SSH Temporarily
+  community.vmware.vmware_host_service_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    service_name: TSM-SSH
+    state: start
+  delegate_to: localhost
+  when: not host_service_info['host_service_info'][inventory_hostname] | selectattr('key', 'equalto', 'TSM-SSH') | map(attribute='running') | list | first | bool
+
+- name: VMware KB83593 Workaround
+  block:
+    - name: Check status of vnicen.sh service
+      ansible.builtin.shell: chkconfig --list | grep vnicen
+      register: chkconfigvnicenCMD
+      changed_when: False
+
+    - name: Set vnicenenabled fact
+      ansible.builtin.set_fact:
+        vnicenenabled: '{{ chkconfigvnicenCMD.stdout | regex_replace(regexp,"\1") | bool }}'
+      vars:
+        regexp: 'vnicen.sh\s*(\w*)'
+
+    - name: Disable vnicen.sh service
+      ansible.builtin.shell: chkconfig vnicen.sh off
+      when: vnicenenabled
+
+    - name: Check for vnicen.sh processes
+      ansible.builtin.shell: ps -c | grep vnicen
+      register: psvnicenCMD
+      changed_when: False
+
+    - name: Set vnicenprocesscount fact
+      ansible.builtin.set_fact:
+        vnicenprocesscount: '{{ psvnicenCMD.stdout | regex_findall(regexp) | count }}'
+      vars:
+        regexp: '\d*\s*\d*\s*sh\s*/bin/sh\s*/etc/init.d/vnicen.sh\s*start'
+
+    - name: Enter Maintenance Mode
+      community.vmware.vmware_maintenancemode:
+        hostname: '{{ vmware_host }}'
+        esxi_hostname: '{{ inventory_hostname }}'
+        username: '{{ vmware_user }}'
+        password: '{{ vmware_password }}'
+        evacuate: yes
+        state: present
+      delegate_to: localhost
+      when: vnicenprocesscount|int > 0
+      notify: Reboot Host

@@ -1,0 +1,10 @@
+---
+# defaults file for configure_syslog
+vmware_host: "{{ lookup('env','VMWARE_HOST') }}"
+vmware_user: "{{ lookup('env','VMWARE_USER') }}"
+vmware_password: "{{ lookup('env','VMWARE_PASSWORD') }}"
+configure_remote_syslog: no
+configure_syslog_filters: no
+hostd_log_level: info
+vpxa_log_level: verbose
+logfilters_template: logfilters.j2

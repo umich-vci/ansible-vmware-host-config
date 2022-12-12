@@ -1,0 +1,84 @@
+---
+# tasks file for create_vmk_interface
+- name: Gather VMKernel Interface Host Facts
+  community.vmware.vmware_vmkernel_info:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+  delegate_to: localhost
+  register: vmkernel_interface_info
+
+- name: Check if {{ interface }} exists
+  ansible.builtin.set_fact:
+    '{{ interface }}_exists': '{{ vmkernel_interface_info["host_vmk_info"][inventory_hostname] | selectattr("device", "equalto", interface) | list | length >0 }}'
+
+- name: Create temporary vSwitch for vmk interface creation
+  community.vmware.vmware_vswitch:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    switch: vSwitch-{{ interface }}-Ansible-Temp
+    state: present
+  delegate_to: localhost
+  when: not lookup('vars', interface + '_exists')|bool
+
+- name: Create temporary portgroup for storage vmk
+  community.vmware.vmware_portgroup:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    portgroup_name: '{{ interface }}-Ansible-Temp'
+    state: present
+    switch_name: vSwitch-{{ interface }}-Ansible-Temp
+    vlan_id: '{{ vlan_id }}'
+  delegate_to: localhost
+  when: not lookup('vars', interface + '_exists')|bool
+
+- name: Create vmk interface
+  community.vmware.vmware_vmkernel:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    enable_ft: '{{ enable_ft }}'
+    enable_mgmt: '{{ enable_mgmt }}'
+    enable_vmotion: '{{ enable_vmotion }}'
+    enable_vsan: '{{ enable_vsan }}'
+    mtu: '{{ mtu }}'
+    network:
+      type: 'static'
+      ip_address: '{{ ip_address }}'
+      subnet_mask: '{{ subnet_mask }}'
+    state: present
+    vswitch_name: vSwitch-{{ interface }}-Ansible-Temp
+    portgroup_name: '{{ interface }}-Ansible-Temp'
+  delegate_to: localhost
+  when: not lookup('vars', interface + '_exists')|bool
+
+- name: Move vmk interface to DVSwitch
+  community.vmware.vmware_migrate_vmk:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    current_portgroup_name: '{{ interface }}-Ansible-Temp'
+    current_switch_name: vSwitch-{{ interface }}-Ansible-Temp
+    device: '{{ interface }}'
+    migrate_portgroup_name: '{{ dvs_portgroup }}'
+    migrate_switch_name: '{{ dvswitch }}'
+  delegate_to: localhost
+  when: not lookup('vars', interface + '_exists')|bool
+
+- name: Remove temporary vSwitch for vmk interface creation
+  community.vmware.vmware_vswitch:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    switch: vSwitch-{{ interface }}-Ansible-Temp
+    state: absent
+  delegate_to: localhost
+  when: not lookup('vars', interface + '_exists')|bool

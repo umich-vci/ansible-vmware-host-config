@@ -1,0 +1,11 @@
+---
+# defaults file for create_vmk_interface
+vmware_host: "{{ lookup('env','VMWARE_HOST') }}"
+vmware_user: "{{ lookup('env','VMWARE_USER') }}"
+vmware_password: "{{ lookup('env','VMWARE_PASSWORD') }}"
+enable_ft: no
+enable_mgmt: no
+enable_vmotion: no
+enable_vsan: no
+mtu: 1500
+vlan_id: null

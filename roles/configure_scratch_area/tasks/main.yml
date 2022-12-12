@@ -1,0 +1,26 @@
+---
+# tasks file for configure_vmware_scratch_area
+- name: Set Scratch Area Path for Shared Datastore {{ shared_scratch_area_datastore }}
+  ansible.builtin.set_fact: 
+    scratch_area_path: "{{ [ shared_scratch_area_datastore, shared_scratch_directory, '.locker-' + inventory_hostname ] | join('/') }}"
+  when: shared_scratch_area|bool
+
+- name: Set Scratch Area Path for Local Datastore {{ local_scratch_datastore }}
+  ansible.builtin.set_fact: 
+    scratch_area_path: "{{ [ local_scratch_datastore, '.locker' ] | join('/') }}"
+  when: not shared_scratch_area|bool
+
+- ansible.builtin.debug:
+    msg: '{{ scratch_area_path }}'
+
+- name: Configure Scratch Area
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'ScratchConfig.ConfiguredScratchLocation': '{{ scratch_area_path }}'
+  delegate_to: localhost
+  # This will fail if the directory does not already exist on the datastore
+  ignore_errors: true

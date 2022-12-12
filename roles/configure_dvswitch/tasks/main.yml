@@ -1,0 +1,12 @@
+---
+# tasks file for configure_dvswitch
+- name: Add host to DVSwitch {{ dvswitch }}
+  vmware_dvs_host:
+    hostname: '{{ vcenter_hostname }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    state: present
+    switch_name: '{{ dvswitch }}'
+    vmnics: '{{ dvswitch_vmnics }}'
+  delegate_to: localhost

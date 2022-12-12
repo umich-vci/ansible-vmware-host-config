@@ -1,0 +1,11 @@
+---
+# handlers file for start_temporary_ssh
+- name: Stop Temporary SSH
+  vmware_host_service_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    service_name: TSM-SSH
+    state: stop
+  delegate_to: localhost

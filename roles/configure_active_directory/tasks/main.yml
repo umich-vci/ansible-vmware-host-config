@@ -1,0 +1,33 @@
+---
+# tasks file for configure_vmware_active_directory
+- name: Configure esxAdminsGroup for Active Directory
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vcenter_hostname }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Config.HostAgent.plugins.hostsvc.esxAdminsGroup': '{{ esx_admins_group }}'
+  delegate_to: localhost
+
+- name: Create Computer Object for ESXi Host
+  community.windows.win_domain_computer:
+    name: '{{ inventory_hostname_short }}'
+    dns_hostname: '{{ inventory_hostname }}'
+    ou: '{{ ad_ou }}'
+    enabled: yes
+    state: present
+  delegate_to: '{{ winrm_ad_host }}'
+
+- name: Join Active Directory
+  community.vmware.vmware_host_active_directory:
+    hostname: '{{ vcenter_hostname }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    ad_domain: '{{ ad_domain }}'
+    ad_user: '{{ ad_service_account_user }}'
+    ad_password: '{{ ad_service_account_password }}'
+    ad_state: present
+  delegate_to: localhost
+

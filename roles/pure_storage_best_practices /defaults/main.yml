@@ -1,0 +1,8 @@
+# defaults file for pure_storage_best_practices
+vmware_host: "{{ lookup('env','VMWARE_HOST') }}"
+vmware_user: "{{ lookup('env','VMWARE_USER') }}"
+vmware_password: "{{ lookup('env','VMWARE_PASSWORD') }}"
+Third_Party_Array_Not_Support_ATS_HB: false
+Third_Party_Array_Not_Support_Max_HW_Transfer_Size: false
+MaxHWTransferSize: '{{4096 if Third_Party_Array_Not_Support_Max_HW_Transfer_Size|bool else 16384}}'
+DisableSmartd: false

@@ -1,0 +1,25 @@
+---
+# tasks file for mcepsc_mitigation
+- name: Configure MCEPSC mitigation for vSphere 6.x
+  block:
+    - name: Start Temporary SSH
+      ansible.builtin.import_role:
+        name: umich_vci.vmware_host_config.start_temporary_ssh
+
+    - name: Edit /etc/vmware/config
+      ansible.builtin.lineinfile:
+        path: /etc/vmware/config
+        line: 'monitor.if_pschange_mc_workaround = "TRUE"'
+        state: '{{ "present" if mcepsc_mitigation_enabled|bool else "absent" }}'
+  when: (ansible_distribution_version == "6.7.0" and ansible_distribution_build|int >= 15018017) or (ansible_distribution_version == "6.5.0" and ansible_distribution_build|int >= 14990892) or (ansible_distribution_version == "6.0.0" and ansible_distribution_build|int >= 15018929)
+
+- name: Configure MCEPSC mitigation for vSphere 7.x
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Config.Defaults.monitor.if_pschange_mc_workaround': '{{ mcepsc_mitigation_enabled|string }}'
+  delegate_to: localhost
+  when: ansible_distribution_version is version_compare("7.0.0", ">=")

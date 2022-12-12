@@ -1,0 +1,56 @@
+# Copyright 2014, VMware, Inc.
+# To filter out excessive logging, add lines with the following syntax:
+#
+#      numLogs | ident | logRegexp
+#
+# Any log line with a substring matching the regular expression logRegexp
+# will appear the first "numLogs" times that it's issued, but will be
+# ignored after that point. For example, the line:
+#
+#      5 | vmkernel | .*
+#
+#  will ensure that only the first 5 vmkernel-related lines appear in the log
+#  and others are ignored.
+#
+#  All comparisons are case-sensitive. logRegexp must be a valid regular
+#  expression confirming to the Python regular expression syntax.
+#  Using '*' for the ident field implies that log messages from all sources
+#  are a potential match. Multiple ident values can be specified in a comma
+#  separated list. Consult /etc/vmsyslog.conf.d/*.conf for possible values
+#  of ident.
+#
+#  This feature should be used only in the case where a log statement is
+#  spewing excessively. Filtering the log too aggressively may make
+#  troubleshooting more difficult if it loses valuable information.
+{% if ansible_facts.system_vendor == 'HPE' and 'Gen10' in ansible_facts.product_name  %}
+
+# Filter out SDcard messages for HPE Gen10 hosts that can be ignored
+# https://support.hpe.com/hpsc/doc/public/display?sp4ts.oid=1010083017&docLocale=en_US&docId=emr_na-a00063477en_us
+0 | vmkernel | 0x9e, CmdSN 0x\w* from world 0 to dev "eui\.00e04c2020202000" failed H:0x7 D:0x0 P:0x0 Invalid sense data: 0x\w* 0x\w* 0x\w*
+0 | vmkernel | 0x9e \(0x\w*, 0\) to dev "eui\.00e04c2020202000" on path "vmhba32:C0:T0:L0" Failed: H:0x7 D:0x0 P:0x0 Invalid sense data: 0x0 0x0 0x0. Act:EVAL
+0 | vmkernel | 0x85,.* to dev "eui\.00e04c2020202000" failed H:0x0 D:0x2 P:0x0 Valid sense data: 0x5 0x24 0x0
+0 | vmkernel | NMP: nmp_ThrottleLogForDevice:\d*: last error status from device eui.00e04c2020202000 repeated \d* times
+0 | vmkernel | NMP: nmp_ResetDeviceLogThrottling:\d*: last error status from device eui.00e04c2020202000 repeated \d* times
+0 | vmkwarning | WARNING: NMP: nmp_DeviceRequestFastDeviceProbe:237: NMP device "eui\.00e04c2020202000" state in doubt; requested fast path state update\.\.\.
+
+# This is not documented in the support bulletin but also seems to occur with Gen10 Synergy on 6.5U3
+0 | vmkernel | 0x9e, CmdSN 0x\w* from world 0 to dev "mpx\.vmhba32:C0:T0:L0" failed H:0x7 D:0x0 P:0x0 Invalid sense data: 0x\w* 0x\w* 0x\w*
+0 | vmkernel | 0x9e \(0x\w*, 0\) to dev "mpx\.vmhba32:C0:T0:L0" on path "vmhba32:C0:T0:L0" Failed: H:0x7 D:0x0 P:0x0 Invalid sense data: 0x0 0x0 0x0. Act:EVAL
+0 | vmkernel | 0x85,.* to dev "mpx\.vmhba32:C0:T0:L0" failed H:0x0 D:0x2 P:0x0 Valid sense data: 0x5 0x24 0x0.
+0 | vmkernel | NMP: nmp_ResetDeviceLogThrottling:\d*: last error status from device mpx\.vmhba32:C0:T0:L0 repeated \d* times
+0 | vmkernel | NMP: nmp_ThrottleLogForDevice:\d*: last error status from device mpx\.vmhba32:C0:T0:L0 repeated \d* times
+{% endif %}
+{% if (ansible_facts.system_vendor == 'HP' or ansible_facts.system_vendor == 'HPE') and 'Gen10' not in ansible_facts.product_name %}
+
+# Filter out SDcard messages for Gen9 and older HP hardware
+0 | vmkernel | NMP: nmp_ResetDeviceLogThrottling:\d*: Error status H:0x0 D:0x2 P:0x0 Sense Data: 0x5 0x20 0x0 from dev "mpx\.vmhba32:C0:T0:L0" occurred
+{% endif %}
+
+# Filter out SCSI rescan commands
+# https://kb.vmware.com/s/article/2118562
+0 | vmkernel | 0x1a.* H:0x0 D:0x2 P:0x0 Valid sense data: 0x5 0x2[04] 0x0
+0 | vmkernel | 0x85.* H:0x0 D:0x2 P:0x0 Valid sense data: 0x5 0x20 0x0
+0 | vmkernel | 0x12.* H:0x0 D:0x2 P:0x0 Valid sense data: 0x5 0x24 0x0
+0 | vmkernel | 0x9e.* H:0x0 D:0x2 P:0x0 Valid sense data: 0x5 0x20 0x0
+0 | vmkernel | bad CDB .* scsi_op=0x9e
+0 | vmkernel | 0x4d.* H:0x0 D:0x2 P:0x0 Valid sense data: 0x5 0x20 0x0

@@ -1,0 +1,82 @@
+---
+# tasks file for configure_syslog
+- name: Set log level for hostd
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Config.HostAgent.log.level': '{{ hostd_log_level }}'
+  delegate_to: localhost
+  notify: Reload syslog
+
+- name: Set log level for vpxa
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Vpx.Vpxa.config.log.level': '{{ vpxa_log_level }}'
+  delegate_to: localhost
+  notify: Reload syslog
+
+- name: Start Temporary SSH
+  ansible.builtin.import_role:
+    name: umich_vci.vmware_host_config.start_temporary_ssh
+
+- name: Enable Syslog Filtering
+  community.general.ini_file:
+    create: no
+    backup: yes
+    path: /etc/vmsyslog.conf
+    section: vmsyslog
+    option: enable_logfilters
+    value: 'true'
+    state: present
+  when: configure_syslog_filters|bool
+  notify: Reload syslog
+
+- name: Disable Syslog Filtering
+  community.general.ini_file:
+    create: no
+    backup: yes
+    path: /etc/vmsyslog.conf
+    section: vmsyslog
+    option: enable_logfilters
+    state: absent
+  when: not configure_syslog_filters|bool
+  notify: Reload syslog
+
+- name: Deploy Syslog Filters Template
+  ansible.builtin.template:
+    src: '{{ logfilters_template }}'
+    dest: /etc/vmware/logfilters
+  when: configure_syslog_filters|bool and (ansible_distribution_version == "6.5.0" or ansible_distribution_version == "6.7.0")
+  notify: Reload syslog
+    
+- name: Set Syslog Host
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Syslog.global.logHost': '{{ syslog_servers }}'
+  delegate_to: localhost
+  when: configure_remote_syslog|bool
+
+- name: Allow syslog through the firewall
+  community.vmware.vmware_host_firewall_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    rules:
+      - name: syslog
+        enabled: True
+        allowed_hosts:
+          all_ip: True
+  delegate_to: localhost
+  when: configure_remote_syslog|bool

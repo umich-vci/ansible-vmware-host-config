@@ -1,0 +1,6 @@
+---
+# defaults file for configure_ntpd
+vmware_host: "{{ lookup('env','VMWARE_HOST') }}"
+vmware_user: "{{ lookup('env','VMWARE_USER') }}"
+vmware_password: "{{ lookup('env','VMWARE_PASSWORD') }}"
+configure_ntp: no

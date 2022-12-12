@@ -1,0 +1,15 @@
+---
+# tasks file for configure_nfs_datastores
+- name: Add NFS datastores
+  vmware_host_datastore:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    datastore_name: '{{ item.datastore_name }}'
+    datastore_type: nfs
+    nfs_server: '{{ item.nfs_server }}'
+    nfs_path: '{{ item.nfs_path }}'
+    nfs_ro: '{{ item.read_only }}'
+  loop: '{{ datastores }}'
+  delegate_to: localhost

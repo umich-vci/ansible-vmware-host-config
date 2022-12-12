@@ -1,0 +1,123 @@
+---
+# tasks file for pure_storage_best_practices
+- name: Start Temporary SSH
+  ansible.builtin.import_role:
+    name: umich_vci.vmware_host_config.start_temporary_ssh
+
+- name: DataMover.HardwareAcceleratedInit
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'DataMover.HardwareAcceleratedInit': 1
+  delegate_to: localhost
+
+- name: DataMover.HardwareAcceleratedMove
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'DataMover.HardwareAcceleratedMove': 1
+  delegate_to: localhost
+
+- name: VMFS3.HardwareAcceleratedLocking
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'VMFS3.HardwareAcceleratedLocking': 1
+  delegate_to: localhost
+
+- name: Disk.DiskMaxIOSize
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'Disk.DiskMaxIOSize': 4096
+  delegate_to: localhost
+  # https://support.purestorage.com/Solutions/VMware_Platform_Guide/User_Guides_for_VMware_Solutions/FlashArray_VMware_Best_Practices_User_Guide/hhhWeb_Guide%3A_FlashArray_VMware_Best_Practices
+  # This is resolved in the following ESXi releases:
+  # ESXi 6.0, Patch Release ESXi600-201909001
+  # ESXi 6.5, Patch Release ESXi650-201811002
+  # ESXi 6.7 Update 1 Release
+  # ESXi 7.0 all releases
+  when: (ansible_distribution_version == "6.7.0" and ansible_distribution_build|int < 10302608) or (ansible_distribution_version == "6.5.0" and ansible_distribution_build|int < 10884925) or (ansible_distribution_version == "6.0.0" and ansible_distribution_build|int < 14513180)
+
+
+- name: VMFS3.UseATSForHBOnVMFS5
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'VMFS3.UseATSForHBOnVMFS5': '{{ 0 if Third_Party_Array_Not_Support_ATS_HB|bool else 1 }}'
+  delegate_to: localhost
+
+- name: Get value of DataMover.MaxHWTransferSize
+  ansible.builtin.shell: esxcfg-advcfg -g /DataMover/MaxHWTransferSize
+  register: MaxHWTransferSizeCMD
+  changed_when: False
+
+- name: Set CurrentMaxHWTransferSize fact
+  ansible.builtin.set_fact:
+    CurrentMaxHWTransferSize: '{{ MaxHWTransferSizeCMD.stdout | regex_replace(regexp,"\1") }}'
+  vars:
+    regexp: 'Value of MaxHWTransferSize is (\d*)'
+
+- ansible.builtin.debug: var=CurrentMaxHWTransferSize
+
+- name: DataMover.MaxHWTransferSize
+  ansible.builtin.shell: esxcfg-advcfg -s {{ MaxHWTransferSize }} /DataMover/MaxHWTransferSize
+  when: CurrentMaxHWTransferSize != MaxHWTransferSize
+
+- name: VMFS3.EnableBlockDelete
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'VMFS3.EnableBlockDelete': 1
+  delegate_to: localhost
+
+# vSphere keeps trying to read SMART data from Pure volumes
+# https://www.jacobhopkinson.com/2019/08/09/vmware-and-scsi-why-do-my-pure-storage-datastores-report-scsi-0x85-errors-every-30-minutes/
+- when: DisableSmartd
+  block:
+    - name: Get status of smartd
+      ansible.builtin.shell: /etc/init.d/smartd status
+      register: SmartdStatusCMD
+      failed_when: ( SmartdStatusCMD.rc not in [ 0, 3 ] ) # When smart is stopped the return code is 3
+      changed_when: False
+
+
+    - name: Set SmartdStatus fact
+      ansible.builtin.set_fact:
+        SmartdRunning: '{{ true if SmartdStatusCMD.rc == 0 else false }}'
+
+    - name: Stop smartd
+      ansible.builtin.shell: /etc/init.d/smartd stop
+      when: SmartdRunning
+
+    - name: Check if smartd is enabled at boot
+      ansible.builtin.shell: chkconfig --list smartd
+      register: SmartdEnabledCMD
+      failed_when: ( SmartdEnabledCMD.rc not in [ 0, 1 ] ) # When smart is disabled the return code is 1
+      changed_when: False
+
+    - name: Set SmartdEnabled fact
+      ansible.builtin.set_fact:
+        SmartdEnabled: '{{ true if SmartdEnabledCMD.rc == 0 else false }}'
+
+    - name: Disable smartd at boot
+      ansible.builtin.shell: chkconfig smartd off
+      when: SmartdEnabled

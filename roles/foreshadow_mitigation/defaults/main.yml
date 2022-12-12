@@ -1,0 +1,10 @@
+---
+# defaults file for foreshadow_mitigation
+vmware_host: "{{ lookup('env','VMWARE_HOST') }}"
+vmware_user: "{{ lookup('env','VMWARE_USER') }}"
+vmware_password: "{{ lookup('env','VMWARE_PASSWORD') }}"
+scheduler: "SCAv1"
+schedulers:
+  - "unmitigated"
+  - "SCAv1"
+  - "SCAv2"

@@ -1,0 +1,18 @@
+---
+# tasks file for ibm_storage_best_practices
+- name: Disable ATS for datastore heartbeat I/O
+  vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'VMFS3.UseATSForHBOnVMFS5': 0
+  delegate_to: localhost
+  when: ansible_distribution_version == "6.5.0" or ansible_distribution_version == "6.0.0" or ansible_distribution_version == "5.5.0"
+
+# - name: Enable reset_on_attempted_reserve option for IBM SVC Storage
+#   Need to figure out a way to run:
+#      esxcli storage nmp satp rule add --satp VMW_SATP_ALUA --psp VMW_PSP_RR --vendor IBM --model 2145 --option reset_on_attempted_reserve
+#   or equivalent
+#   when: ansible_distribution_version == "6.5.0" or ansible_distribution_version == "6.0.0" or ansible_distribution_version == "5.5.0"

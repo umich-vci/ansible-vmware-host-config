@@ -1,0 +1,11 @@
+---
+# handlers file for kb83593_workaround
+- name: Reboot Host
+  community.vmware.vmware_host_powerstate:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    force: no
+    state: reboot-host
+  delegate_to: localhost

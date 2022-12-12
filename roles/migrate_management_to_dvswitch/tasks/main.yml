@@ -1,0 +1,64 @@
+---
+# tasks file for migrate_management_to_dvswitch
+- name: Gather Standard vSwitch Info
+  community.vmware.vmware_vswitch_info:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+  delegate_to: localhost
+  register: standard_vswitch_info
+
+- name: Set variable host_has_vswitch0
+  ansible.builtin.set_fact:
+    host_has_vswitch0: '{{ "vSwitch0" in standard_vswitch_info["hosts_vswitch_info"][inventory_hostname] }}'
+
+- name: Migrate from vSwitch0 to DVSwitch
+  block:
+    # If a standard vSwitch exists, we can't put both uplinks to the DVswitch until the
+    # standard vSwitch is removed.  Add 1 uplink to facilitate moving the management vmk
+    - name: Add {{ management_dvswitch_vmnics[1] }} to Main DVSwitch
+      community.vmware.vmware_dvs_host:
+        hostname: '{{ vmware_host }}'
+        esxi_hostname: '{{ inventory_hostname }}'
+        username: '{{ vmware_user }}'
+        password: '{{ vmware_password }}'
+        state: present
+        switch_name: '{{ management_dvswitch }}'
+        vmnics: '{{ management_dvswitch_vmnics[1] }}'
+      delegate_to: localhost
+
+    - name: Move management interface to DVSwitch
+      community.vmware.vmware_migrate_vmk:
+        hostname: '{{ vmware_host }}'
+        esxi_hostname: '{{ inventory_hostname }}'
+        username: '{{ vmware_user }}'
+        password: '{{ vmware_password }}'
+        current_portgroup_name: Management Network
+        current_switch_name: vSwitch0
+        device: vmk0
+        migrate_portgroup_name: '{{ management_portgroup }}'
+        migrate_switch_name: '{{ management_dvswitch }}'
+      delegate_to: localhost
+
+    - name: Remove vSwitch0 from default install
+      community.vmware.vmware_vswitch:
+        hostname: '{{ vmware_host }}'
+        esxi_hostname: '{{ inventory_hostname }}'
+        username: '{{ vmware_user }}'
+        password: '{{ vmware_password }}'
+        switch: vSwitch0
+        state: absent
+      delegate_to: localhost
+  when: host_has_vswitch0|bool
+
+- name: Add all host uplinks to DVSwitch
+  community.vmware.vmware_dvs_host:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    state: present
+    switch_name: '{{ management_dvswitch }}'
+    vmnics: '{{ management_dvswitch_vmnics }}'
+  delegate_to: localhost

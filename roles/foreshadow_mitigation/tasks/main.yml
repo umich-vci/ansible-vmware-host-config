@@ -1,0 +1,45 @@
+---
+# tasks file for vmware_foreshadow_mitigation
+- ansible.builtin.assert:
+    that: scheduler in schedulers
+    fail_msg: "`scheduler` must be set to unmitigated, SCAv1, or SCAv2"
+
+- name: Set unmitigated variables
+  ansible.builtin.set_fact:
+    hyperthreadingMitigation: false
+    hyperthreadingMitigationIntraVM: true
+  when: scheduler == "unmitigated"
+
+- name: Set SCAv1 variables
+  ansible.builtin.set_fact:
+    hyperthreadingMitigation: true
+    hyperthreadingMitigationIntraVM: true
+  when: scheduler == "SCAv1"
+
+- name: Set SCAv2 variables
+  ansible.builtin.set_fact:
+    hyperthreadingMitigation: true
+    hyperthreadingMitigationIntraVM: false
+  when: scheduler == "SCAv2"
+
+- name: Configure hyperthreadingMitigation Advanced Option
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'VMkernel.Boot.hyperthreadingMitigation': '{{ hyperthreadingMitigation }}'
+  delegate_to: localhost
+  when: (ansible_distribution_version is version_compare("7.0.0", ">=")) or (ansible_distribution_version == "6.7.0" and ansible_distribution_build|int >= 9484548) or (ansible_distribution_version == "6.5.0" and ansible_distribution_build|int >= 9298722) or (ansible_distribution_version == "6.0.0" and ansible_distribution_build|int >= 9313334) or (ansible_distribution_version == "5.5.0" and ansible_distribution_build|int >= 9313066)
+
+- name: Configure hyperthreadingMitigationIntraVM Advanced Option
+  community.vmware.vmware_host_config_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    options:
+        'VMkernel.Boot.hyperthreadingMitigationIntraVM': '{{ hyperthreadingMitigationIntraVM }}'
+  delegate_to: localhost
+  when: (ansible_distribution_version is version_compare("7.0.0", ">=")) or (ansible_distribution_version == "6.7.0" and ansible_distribution_build|int >= 13006603)

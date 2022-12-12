@@ -1,0 +1,4 @@
+---
+# handlers file for VMSA_2019_0011_workaround
+- name: Restart hostd
+  ansible.builtin.shell: /etc/init.d/hostd restart && sleep 120

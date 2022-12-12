@@ -1,0 +1,55 @@
+---
+# tasks file for configure_ntpd
+- name: Configure NTP on ESXi Host
+  community.vmware.vmware_host_ntp:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    state: present
+    ntp_servers: '{{ ntp_servers }}'
+  delegate_to: localhost
+
+- name: Make sure NTP is running and enabled at boot
+  community.vmware.vmware_host_service_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    service_name: ntpd
+    service_policy: on
+    state: start
+  delegate_to: localhost
+
+# - name: Make sure Direct Console User Interface is started and enabled at boot
+#   community.vmware.vmware_host_service_manager:
+#     hostname: '{{ vmware_host }}'
+#     esxi_hostname: '{{ inventory_hostname }}'
+#     username: '{{ vmware_user }}'
+#     password: '{{ vmware_password }}'
+#     service_name: DCUI
+#     service_policy: on
+#     state: start
+#   delegate_to: localhost
+
+# - name: Make sure SSH is stopped and disabled at boot
+#   community.vmware.vmware_host_service_manager:
+#     hostname: '{{ vmware_host }}'
+#     esxi_hostname: '{{ inventory_hostname }}'
+#     username: '{{ vmware_user }}'
+#     password: '{{ vmware_password }}'
+#     service_name: TSM-SSH
+#     service_policy: off
+#     state: stop
+#   delegate_to: localhost
+
+# - name: Make sure ESXi Shell is stopped and disabled at boot
+#   community.vmware.vmware_host_service_manager:
+#     hostname: '{{ vmware_host }}'
+#     esxi_hostname: '{{ inventory_hostname }}'
+#     username: '{{ vmware_user }}'
+#     password: '{{ vmware_password }}'
+#     service_name: TSM
+#     service_policy: off
+#     state: stop
+#   delegate_to: localhost

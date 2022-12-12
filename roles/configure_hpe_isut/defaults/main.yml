@@ -1,0 +1,8 @@
+---
+# defaults file for configure_hpe_isut
+isut_mode: "AutoDeploy"
+isut_modes:
+  - "AutoDeploy"
+  - "AutoDeployReboot"
+  - "AutoStage"
+  - "OnDemand"

@@ -1,0 +1,7 @@
+---
+# defaults file for configure_vmware_scratch_area
+vmware_host: "{{ lookup('env','VMWARE_HOST') }}"
+vmware_user: "{{ lookup('env','VMWARE_USER') }}"
+vmware_password: "{{ lookup('env','VMWARE_PASSWORD') }}"
+shared_scratch_area: yes
+shared_scratch_directory: HostScratch
