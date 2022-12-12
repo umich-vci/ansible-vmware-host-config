@@ -1,6 +1,6 @@
 ---
 # tasks file for configure_ntpd
-- name: Configure NTP on ESXi Host
+- name: Configure NTP servers
   community.vmware.vmware_host_ntp:
     hostname: '{{ vmware_host }}'
     esxi_hostname: '{{ inventory_hostname }}'
@@ -19,6 +19,17 @@
     service_name: ntpd
     service_policy: on
     state: start
+  delegate_to: localhost
+
+- name: Ensure NTP is allowed through the firewall
+  vmware_host_firewall_manager:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    rules:
+      - name: ntp
+        enabled: True
   delegate_to: localhost
 
 # - name: Make sure Direct Console User Interface is started and enabled at boot
