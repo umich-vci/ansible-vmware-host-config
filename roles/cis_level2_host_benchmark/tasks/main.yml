@@ -1,0 +1,31 @@
+---
+# tasks file for cis_level1_host_benchmark
+
+- name: CIS Level 1 Benchmark vSphere 7
+  block:
+    - name: 1.4 (L2) Ensure the default value of individual salt per vm is configured
+      community.vmware.vmware_host_config_manager:
+        hostname: '{{ vmware_host }}'
+        esxi_hostname: '{{ inventory_hostname }}'
+        username: '{{ vmware_user }}'
+        password: '{{ vmware_password }}'
+        options:
+            'Mem.ShareForceSalting': 2
+      delegate_to: localhost
+
+    # 2.4 (L2) Ensure default self-signed certificate for ESXi communication is not used
+
+    # 2.9 (L2) Ensure VDS health check is disabled
+
+    # 5.6 (L2) Ensure Strict Lockdown mode is enabled
+  
+    - name: 5.7 (L2) Ensure the SSH authorized_keys file is empty
+      ansible.builtin.template:
+        src: authorized_keys.j2
+        dest: /etc/ssh/keys-root/authorized_keys
+    
+    # 5.11 (L2) Ensure contents of exposed configuration files have not been modified
+
+    # 6.2 (L2) Ensure the uniqueness of CHAP authentication secrets for iSCSI traffic
+
+  when: (ansible_distribution_version is version_compare("7.0.0", ">=")) and (ansible_distribution_version is version_compare("8.0.0", "<"))
