@@ -28,8 +28,10 @@
     username: '{{ vmware_user }}'
     password: '{{ vmware_password }}'
     rules:
-      - name: ntp
+      - name: ntpClient
         enabled: True
+        allowed_hosts:
+            all_ip: true
   delegate_to: localhost
 
 # - name: Make sure Direct Console User Interface is started and enabled at boot
