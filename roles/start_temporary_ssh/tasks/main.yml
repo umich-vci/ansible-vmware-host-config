@@ -1,13 +1,13 @@
 ---
 # tasks file for start_temporary_ssh
 - name: Get the current state of all services
-  community.vmware.vmware_host_service_facts:
+  community.vmware.vmware_host_service_info:
     hostname: '{{ vcenter_hostname }}'
     esxi_hostname: '{{ inventory_hostname }}'
     username: '{{ vmware_user }}'
     password: '{{ vmware_password }}'
   delegate_to: localhost
-  register: host_service_facts
+  register: host_service_info
 
 - name: Start Temporary SSH
   community.vmware.vmware_host_service_manager:
@@ -18,5 +18,5 @@
     service_name: TSM-SSH
     state: start
   delegate_to: localhost
-  when: not host_service_facts['host_service_facts'][inventory_hostname] | selectattr('key', 'equalto', 'TSM-SSH') | map(attribute='running') | list | first | bool
+  when: not host_service_info['host_service_info'][inventory_hostname] | selectattr('key', 'equalto', 'TSM-SSH') | map(attribute='running') | list | first | bool
   notify: Stop Temporary SSH
