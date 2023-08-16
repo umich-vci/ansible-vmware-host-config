@@ -1,0 +1,28 @@
+---
+# tasks file for create_vmotion_interface
+- name: Set Default Gatway for vMotion TCP/IP stack
+  community.vmware.vmware_host_tcpip_stacks:
+    hostname: '{{ vmware_host }}'
+    esxi_hostname: '{{ inventory_hostname }}'
+    username: '{{ vmware_user }}'
+    password: '{{ vmware_password }}'
+    vmotion:
+      gateway: '{{ gateway }}'
+
+-  name: Add vMotion vmkernel port with vMotion TCP/IP stack
+   community.vmware.vmware_vmkernel:
+      hostname: '{{ vmware_host }}'
+      esxi_hostname: '{{ inventory_hostname }}'
+      username: '{{ vmware_user }}'
+      password: '{{ vmware_password }}'
+      device: '{{ device }}'
+      dvswitch_name: '{{ dvswitch_name }}'
+      portgroup_name: '{{ portgroup_name }}'
+      mtu: '{{ mtu }}'
+      network:
+        type: 'static'
+        ip_address: '{{ ip_address }}'
+        subnet_mask: '{{ subnet_mask }}'
+        tcpip_stack: vmotion
+      state: present
+   delegate_to: localhost
